@@ -1,0 +1,11 @@
+title = "__SLATER_SITE_TITLE__"
+base_url = "http://127.0.0.1:3000"
+content_dir = "content"
+output_dir = "public"
+template_dir = "templates"
+static_dir = "static"
+
+[dev]
+host = "127.0.0.1"
+port = 3000
+live_reload = true

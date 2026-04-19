@@ -1,0 +1,21 @@
+[package]
+name = "slater"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = "0.8.9"
+camino = "1.2.2"
+clap = { version = "4.6.1", features = ["derive"] }
+color-eyre = "0.6.5"
+include_dir = "0.7.4"
+jiff = "0.2.23"
+minijinja = "2.19.0"
+notify = "8.2.0"
+pulldown-cmark = { version = "0.13.3", features = ["html"] }
+serde = { version = "1.0.228", features = ["derive"] }
+slug = "0.1.6"
+thiserror = "2.0.18"
+tokio = { version = "1.52.1", features = ["rt-multi-thread", "macros", "signal", "fs"] }
+toml = "1.1.2"
+walkdir = "2.5.0"
