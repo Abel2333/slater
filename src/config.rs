@@ -52,7 +52,28 @@ impl Default for DevConfig {
 }
 
 impl SiteConfig {
-    pub fn load_from_file(path: impl AsRef<Path>) -> Result<Self> {
+    /// Loads site configuration from an explicit path or a default location.
+    ///
+    /// Behavior:
+    /// - If `path` is provided, load the configuration from that path.
+    /// - If `path` is `None` and `./slater.toml` exists, load that file.
+    /// - Otherwise, return the default configuration.
+    pub fn load_config(path: Option<&Path>) -> Result<Self> {
+        match path {
+            Some(path) => Self::load_from_file(path),
+            None => {
+                let possible_path = PathBuf::from("./slater.toml");
+
+                if possible_path.exists() {
+                    Self::load_from_file(possible_path)
+                } else {
+                    Ok(Self::default())
+                }
+            }
+        }
+    }
+
+    fn load_from_file(path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
         if !path.exists() {
             return Err(Error::message(format!(
