@@ -7,11 +7,11 @@ The project is currently in the early scaffolding stage. The repository already 
 - a CLI wired with `clap`
 - an initial module layout for content, rendering, development tooling, and shared infrastructure
 - an `init` command that can scaffold a new site from bundled starter files
+- config loading and validation from `slater.toml`
 - a design document that fixes the intended architecture
 
 What is not finished yet:
 
-- config parsing from `slater.toml`
 - markdown rendering
 - template engine integration
 - development server and file watching
@@ -24,7 +24,8 @@ This repository is for building the generator itself, not for hosting a blog sit
 At the moment:
 
 - `init` is the only command with meaningful behavior
-- `build`, `serve`, and `new` are still placeholders
+- `build` and `serve` load site configuration before entering placeholder workflows
+- `new` is still a placeholder
 - the project layout is intentionally separated into `cmd`, `content`, `render`, and `dev`
 
 ## Project Layout
@@ -142,9 +143,9 @@ See [docs/architecture.md](docs/architecture.md) for the full rationale.
 
 ## Near-Term Plan
 
-- load and validate `slater.toml`
+- implement a real `build` pipeline end to end
 - parse front matter and markdown content
-- render posts and an index page
+- render posts and an index page from project templates
 - copy static assets into the output directory
 - implement a real development server
 - add post scaffolding to `slater new`
