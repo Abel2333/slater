@@ -83,11 +83,21 @@ impl SiteConfig {
         }
 
         let content = fs::read_to_string(path)?;
-        let config: SiteConfig = toml::from_str(&content)?;
+        let mut config: SiteConfig = toml::from_str(&content)?;
+
+        let config_dir = path.parent().unwrap_or(Path::new("."));
+        config.resolve_paths(config_dir);
 
         config.validate()?;
 
         Ok(config)
+    }
+
+    fn resolve_paths(&mut self, base_dir: &Path) {
+        self.content_dir = resolve_path(base_dir, &self.content_dir);
+        self.output_dir = resolve_path(base_dir, &self.output_dir);
+        self.template_dir = resolve_path(base_dir, &self.template_dir);
+        self.static_dir = resolve_path(base_dir, &self.static_dir);
     }
 
     fn validate(&self) -> Result<()> {
@@ -148,5 +158,128 @@ impl SiteConfig {
         }
 
         Ok(())
+    }
+}
+
+fn resolve_path(base_dir: &Path, path: &Path) -> PathBuf {
+    if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        base_dir.join(path)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    use tempfile::tempdir;
+
+    fn write_config(dir: &Path, content: &str) -> PathBuf {
+        let path = dir.join("slater.toml");
+        fs::write(&path, content).expect("failed to write test config");
+        path
+    }
+
+    fn minimal_config() -> &'static str {
+        r#"
+title = "My Blog"
+base_url = "http://127.0.0.1:3000"
+"#
+    }
+
+    #[test]
+    fn loads_from_explicit_path() {
+        let dir = tempdir().expect("failed to create temp dir");
+        let config_path = write_config(dir.path(), minimal_config());
+
+        let config = SiteConfig::load_config(Some(config_path.as_path())).expect("load failed");
+
+        assert_eq!(config.title, "My Blog");
+        assert_eq!(config.base_url, "http://127.0.0.1:3000");
+    }
+
+    #[test]
+    fn fills_missing_fields() {
+        let dir = tempdir().expect("failed to create temp dir");
+        let config_path = write_config(dir.path(), minimal_config());
+
+        let config = SiteConfig::load_config(Some(config_path.as_path())).expect("load failed");
+
+        assert_eq!(config.content_dir, dir.path().join("content"));
+        assert_eq!(config.output_dir, dir.path().join("public"));
+        assert_eq!(config.template_dir, dir.path().join("templates"));
+        assert_eq!(config.static_dir, dir.path().join("static"));
+        assert_eq!(config.dev.host, "127.0.0.1");
+        assert_eq!(config.dev.port, 3000);
+        assert!(config.dev.live_reload);
+    }
+
+    #[test]
+    fn resolves_relative_paths() {
+        let dir = tempdir().expect("failed to create temp dir");
+        let content = r#"
+title = "My Blog"
+base_url = "http://127.0.0.1:3000"
+content_dir = "posts"
+output_dir = "dist"
+template_dir = "views"
+static_dir = "assets"
+"#;
+        let config_path = write_config(dir.path(), content);
+
+        let config = SiteConfig::load_config(Some(config_path.as_path())).expect("load failed");
+
+        assert_eq!(config.content_dir, dir.path().join("posts"));
+        assert_eq!(config.output_dir, dir.path().join("dist"));
+        assert_eq!(config.template_dir, dir.path().join("views"));
+        assert_eq!(config.static_dir, dir.path().join("assets"));
+    }
+
+    #[test]
+    fn error_missing_config_file() {
+        let dir = tempdir().expect("failed to create temp dir");
+        let missing_path = dir.path().join("missing.toml");
+
+        let error =
+            SiteConfig::load_config(Some(missing_path.as_path())).expect_err("expected failure");
+
+        assert!(
+            error.to_string().contains("configuration file not found"),
+            "unexpected error: {error}"
+        );
+    }
+
+    #[test]
+    fn error_invalid_toml() {
+        let dir = tempdir().expect("failed to create temp dir");
+        let config_path = write_config(dir.path(), r#"title = "Broken"#);
+
+        let result = SiteConfig::load_config(Some(config_path.as_path()));
+
+        assert!(result.is_err(), "expected parse error");
+    }
+
+    #[test]
+    fn error_for_invalid_values() {
+        let dir = tempdir().expect("failed to create temp dir");
+        let content = r#"
+title = "My Blog"
+base_url = "http://127.0.0.1:3000"
+content_dir = "site"
+output_dir = "site"
+"#;
+        let config_path = write_config(dir.path(), content);
+
+        let error = SiteConfig::load_config(Some(config_path.as_path()))
+            .expect_err("expected validation error");
+
+        assert!(
+            error
+                .to_string()
+                .contains("content_dir and output_dir must be different"),
+            "unexpected error: {error}"
+        );
     }
 }
