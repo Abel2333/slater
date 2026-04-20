@@ -4,7 +4,6 @@ use crate::error::Result;
 use crate::render::template::TemplateEngine;
 
 pub fn build_site(config: &SiteConfig) -> Result<()> {
-    config.validate()?;
     crate::fs::ensure_dir(&config.output_dir)?;
 
     let engine = TemplateEngine::new();
