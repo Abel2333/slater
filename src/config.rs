@@ -1,8 +1,14 @@
 use std::path::{Path, PathBuf};
 
-use crate::error::{Error, Result};
+use serde::Deserialize;
 
-#[derive(Debug, Clone)]
+use crate::{
+    error::{Error, Result},
+    fs,
+};
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
 pub struct SiteConfig {
     pub title: String,
     pub base_url: String,
@@ -13,7 +19,8 @@ pub struct SiteConfig {
     pub dev: DevConfig,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
 pub struct DevConfig {
     pub host: String,
     pub port: u16,
@@ -54,18 +61,69 @@ impl SiteConfig {
             )));
         }
 
-        Err(Error::message(
-            "configuration parsing is not implemented yet",
-        ))
+        let content = fs::read_to_string(path)?;
+        let config: SiteConfig = toml::from_str(&content)?;
+
+        config.validate()?;
+
+        Ok(config)
     }
 
-    pub fn validate(&self) -> Result<()> {
+    fn validate(&self) -> Result<()> {
+        self.validate_site_fields()?;
+        self.validate_dev_config()?;
+        self.validate_paths()?;
+
+        Ok(())
+    }
+
+    fn validate_site_fields(&self) -> Result<()> {
         if self.title.trim().is_empty() {
             return Err(Error::message("site title cannot be empty"));
         }
 
         if self.base_url.trim().is_empty() {
             return Err(Error::message("base_url cannot be empty"));
+        }
+
+        if !(self.base_url.starts_with("http://") || self.base_url.starts_with("https://")) {
+            return Err(Error::message(
+                "base_url must start with `http://` or `https://`",
+            ));
+        }
+
+        Ok(())
+    }
+
+    fn validate_dev_config(&self) -> Result<()> {
+        if self.dev.host.trim().is_empty() {
+            return Err(Error::message("dev.host cannot be empty"));
+        }
+
+        if self.dev.port == 0 {
+            return Err(Error::message("dev.port must be greater than 0"));
+        }
+
+        Ok(())
+    }
+
+    fn validate_paths(&self) -> Result<()> {
+        if self.content_dir == self.output_dir {
+            return Err(Error::message(
+                "content_dir and output_dir must be different",
+            ));
+        }
+
+        if self.template_dir == self.output_dir {
+            return Err(Error::message(
+                "template_dir and output_dir must be different",
+            ));
+        }
+
+        if self.static_dir == self.output_dir {
+            return Err(Error::message(
+                "static_dir and output_dir must be different",
+            ));
         }
 
         Ok(())
