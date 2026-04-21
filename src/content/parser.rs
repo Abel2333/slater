@@ -1,3 +1,4 @@
+use crate::Error;
 use std::path::Path;
 
 use crate::content::front_matter::FrontMatter;
@@ -7,7 +8,6 @@ use crate::error::Result;
 pub fn parse_post(path: impl AsRef<Path>, source: &str) -> Result<Post> {
     let path = path.as_ref();
     let front_matter = FrontMatter::default();
-    front_matter.validate()?;
 
     let title = front_matter
         .title
@@ -39,4 +39,24 @@ fn fallback_title(path: &Path) -> Option<String> {
     path.file_stem()
         .and_then(|name| name.to_str())
         .map(|name| name.replace('-', " "))
+}
+
+fn extract_front_matter(source: &str) -> Result<Option<&str>> {
+    let delimiter = "+++\n";
+    let mut remaining = source;
+
+    // find start
+    let Some(start_pos) = remaining.find(delimiter) else {
+        return Ok(None);
+    };
+    remaining = &remaining[start_pos + delimiter.len()..];
+
+    // find end
+    let Some(end_pos) = remaining.find(delimiter) else {
+        return Err(Error::message(format!(
+            "could not find the second delimiter {delimiter}"
+        )));
+    };
+
+    Ok(Some(&remaining[..end_pos]))
 }
