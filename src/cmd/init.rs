@@ -108,7 +108,7 @@ fn capitalize_word(word: &str) -> String {
 fn read_init_asset(relative_path: &str) -> Result<String> {
     let path = PathBuf::from("assets/init").join(relative_path);
 
-    std::fs::read_to_string(&path).map_err(|error| {
+    crate::fs::read_to_string(&path).map_err(|error| {
         crate::error::Error::message(format!(
             "failed to load init asset {}: {error}",
             path.display()
@@ -128,13 +128,10 @@ fn render_init_config(site_title: &str) -> Result<String> {
 
 /// Process Functions
 fn validate_plan(plan: &InitPlan) -> Result<()> {
-    if plan.root_dir.exists() && !plan.overwrite {
-        let mut entries = plan.root_dir.read_dir()?;
-        if entries.next().is_some() {
-            return Err(crate::error::Error::message(
-                "target directory is not empty; use --force to continue",
-            ));
-        }
+    if crate::fs::dir_has_entries(&plan.root_dir)? {
+        return Err(crate::error::Error::message(
+            "target directory is not empty; use --force to continue",
+        ));
     }
 
     for file in &plan.write_files {
@@ -151,20 +148,16 @@ fn validate_plan(plan: &InitPlan) -> Result<()> {
 
 fn apply_plan(plan: &InitPlan) -> Result<()> {
     // root directory
-    std::fs::create_dir_all(&plan.root_dir)?;
+    crate::fs::ensure_dir(&plan.root_dir)?;
 
     // other directories
     for dir in &plan.create_dirs {
-        std::fs::create_dir_all(dir)?;
+        crate::fs::ensure_dir(dir)?;
     }
 
     // all files
     for file in &plan.write_files {
-        if let Some(parent) = file.path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-
-        std::fs::write(&file.path, &file.contents)?;
+        crate::fs::write_string(&file.path, &file.contents)?;
     }
 
     Ok(())
