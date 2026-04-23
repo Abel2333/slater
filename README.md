@@ -12,10 +12,9 @@ The project is currently in the early scaffolding stage. The repository already 
 
 What is not finished yet:
 
-- markdown rendering
 - template engine integration
 - development server and file watching
-- real `build` and `new` workflows
+- real `new` workflow
 
 ## Status
 
@@ -23,8 +22,10 @@ This repository is for building the generator itself, not for hosting a blog sit
 
 At the moment:
 
-- `init` is the only command with meaningful behavior
-- `build` and `serve` load site configuration before entering placeholder workflows
+- `init` creates a starter site directory from bundled assets
+- `build` reads markdown content, renders article and index pages, and copies static assets into `public/`
+- `build` currently uses hardcoded HTML rendering; it does not yet render from files in `templates/`
+- `serve` loads site configuration before entering a placeholder workflow
 - `new` is still a placeholder
 - the project layout is intentionally separated into `cmd`, `content`, `render`, and `dev`
 
@@ -100,6 +101,20 @@ The starter currently includes:
 - `templates/post.html`
 - `static/style.css`
 
+### Build a site
+
+Generate the static site into the configured `output_dir`:
+
+```bash
+cargo run -- build --config ./my-blog/slater.toml
+```
+
+For the starter site, this creates:
+
+- `public/index.html`
+- `public/hello-world/index.html`
+- `public/style.css`
+
 ## Commands
 
 ```text
@@ -112,7 +127,7 @@ slater init [target_dir] [--title <title>] [--force]
 Current behavior:
 
 - `init` creates a starter site directory from `assets/init/`
-- `build` is a scaffold only
+- `build` generates static files from markdown content and static assets
 - `serve` is a scaffold only
 - `new` is a scaffold only
 
@@ -143,10 +158,7 @@ See [docs/architecture.md](docs/architecture.md) for the full rationale.
 
 ## Near-Term Plan
 
-- implement a real `build` pipeline end to end
-- parse front matter and markdown content
-- render posts and an index page from project templates
-- copy static assets into the output directory
+- render posts and an index page from project template files
 - implement a real development server
 - add post scaffolding to `slater new`
 
