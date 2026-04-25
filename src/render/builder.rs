@@ -7,7 +7,7 @@ use crate::render::template::TemplateEngine;
 pub fn build_site(config: &SiteConfig) -> Result<()> {
     crate::fs::ensure_dir(&config.output_dir)?;
 
-    let engine = TemplateEngine::new();
+    let engine = TemplateEngine::new(&config.template_dir)?;
     let posts = load_posts(config)?;
 
     write_post_pages(config, &engine, &posts)?;
@@ -55,7 +55,7 @@ fn load_posts(config: &SiteConfig) -> Result<Vec<Post>> {
 
 fn write_post_pages(config: &SiteConfig, engine: &TemplateEngine, posts: &[Post]) -> Result<()> {
     for post in posts {
-        let rendered = engine.render_post(post)?;
+        let rendered = engine.render_post(post, config)?;
         let output_path = config.output_dir.join(&post.meta.slug).join("index.html");
 
         crate::fs::write_string(output_path, &rendered)?;

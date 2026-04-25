@@ -7,6 +7,7 @@ pub enum Error {
     Io(std::io::Error),
     TomlDe(toml::de::Error),
     Message(String),
+    Jinja(minijinja::Error),
 }
 
 impl Error {
@@ -20,6 +21,7 @@ impl Display for Error {
         match self {
             Self::Io(error) => write!(f, "{error}"),
             Self::TomlDe(error) => write!(f, "{error}"),
+            Self::Jinja(error) => write!(f, "{error}"),
             Self::Message(message) => f.write_str(message),
         }
     }
@@ -36,5 +38,11 @@ impl From<std::io::Error> for Error {
 impl From<toml::de::Error> for Error {
     fn from(error: toml::de::Error) -> Self {
         Self::TomlDe(error)
+    }
+}
+
+impl From<minijinja::Error> for Error {
+    fn from(error: minijinja::Error) -> Self {
+        Self::Jinja(error)
     }
 }
