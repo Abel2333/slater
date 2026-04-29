@@ -8,12 +8,13 @@
   </head>
   <body>
     <header class="site-header">
-      <div class="container">
+      <div class="container site-header-inner">
+        <p class="site-kicker">A quiet place on the internet</p>
         <h1 class="site-title"><a href="/">{{ site.title }}</a></h1>
       </div>
     </header>
 
-    <main class="container">{{ content|safe }}</main>
+    <main class="container page-shell">{{ content|safe }}</main>
 
     <footer class="site-footer">
       <div class="container">
