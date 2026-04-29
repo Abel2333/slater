@@ -7,7 +7,7 @@ use crate::render::template::TemplateEngine;
 pub fn build_site(config: &SiteConfig) -> Result<()> {
     crate::fs::ensure_dir(&config.output_dir)?;
 
-    let engine = TemplateEngine::new();
+    let engine = TemplateEngine::new(&config.template_dir)?;
     let posts = load_posts(config)?;
 
     write_post_pages(config, &engine, &posts)?;
@@ -55,7 +55,7 @@ fn load_posts(config: &SiteConfig) -> Result<Vec<Post>> {
 
 fn write_post_pages(config: &SiteConfig, engine: &TemplateEngine, posts: &[Post]) -> Result<()> {
     for post in posts {
-        let rendered = engine.render_post(post)?;
+        let rendered = engine.render_post(post, config)?;
         let output_path = config.output_dir.join(&post.meta.slug).join("index.html");
 
         crate::fs::write_string(output_path, &rendered)?;
@@ -98,6 +98,47 @@ mod tests {
         }
     }
 
+    fn write_templates(config: &SiteConfig) {
+        crate::fs::ensure_dir(&config.template_dir).expect("failed to create template dir");
+
+        crate::fs::write_string(
+            config.template_dir.join("base.html"),
+            r#"<!doctype html>
+<html>
+  <head>
+    <title>{{ title }} - {{ site.title }}</title>
+  </head>
+  <body>
+    {{ content|safe }}
+  </body>
+</html>
+"#,
+        )
+        .expect("failed to write base template");
+
+        crate::fs::write_string(
+            config.template_dir.join("index.html"),
+            r#"<section>
+  {% for post in posts %}
+  <a href="{{ post.url }}">{{ post.title }}</a>
+  <p>{{ post.summary }}</p>
+  {% endfor %}
+</section>
+"#,
+        )
+        .expect("failed to write index template");
+
+        crate::fs::write_string(
+            config.template_dir.join("post.html"),
+            r#"<article>
+  <h1>{{ post.title }}</h1>
+  <div>{{ post.content|safe }}</div>
+</article>
+"#,
+        )
+        .expect("failed to write post template");
+    }
+
     #[test]
     fn builds_posts_index_and_static_assets() {
         let dir = tempdir().expect("failed to create temp dir");
@@ -105,6 +146,7 @@ mod tests {
 
         crate::fs::ensure_dir(&config.content_dir).expect("failed to create content dir");
         crate::fs::ensure_dir(&config.static_dir).expect("failed to create static dir");
+        write_templates(&config);
 
         crate::fs::write_string(
             config.content_dir.join("hello-world.md"),
@@ -138,7 +180,7 @@ Welcome to **Slater**.
             fs::read_to_string(config.output_dir.join("style.css")).expect("missing static asset");
 
         assert!(index.contains("Test Site"));
-        assert!(index.contains(r#"<a href="/hello-world/">Hello World</a>"#));
+        assert!(index.contains(r#"<a href="&#x2f;hello-world&#x2f;">Hello World</a>"#));
         assert!(index.contains("My first post."));
         assert!(post.contains("<strong>Slater</strong>"));
         assert_eq!(css, "body { color: black; }\n");
@@ -150,6 +192,7 @@ Welcome to **Slater**.
         let config = test_config(dir.path());
 
         crate::fs::ensure_dir(&config.content_dir).expect("failed to create content dir");
+        write_templates(&config);
 
         crate::fs::write_string(
             config.content_dir.join("draft.md"),

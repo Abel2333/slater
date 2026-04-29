@@ -1,82 +1,97 @@
+use std::path::Path;
+
+use minijinja::{Environment, context};
+use serde::Serialize;
+
 use crate::SiteConfig;
 use crate::content::post::Post;
 use crate::error::Result;
 
+#[derive(Serialize)]
+struct SiteView<'a> {
+    title: &'a str,
+    base_url: &'a str,
+}
+
+#[derive(Serialize)]
+struct PostView<'a> {
+    title: &'a str,
+    date: Option<&'a str>,
+    content: &'a str,
+    url: String,
+    summary: Option<&'a str>,
+}
+
+impl<'a> PostView<'a> {
+    fn from_post(post: &'a Post) -> Self {
+        Self {
+            title: &post.meta.title,
+            date: post.meta.date.as_deref(),
+            content: &post.html,
+            url: format!("/{}/", post.meta.slug),
+            summary: post.meta.summary.as_deref().or(post.excerpt.as_deref()),
+        }
+    }
+}
+
 #[derive(Debug, Default)]
-pub struct TemplateEngine;
+pub struct TemplateEngine {
+    env: Environment<'static>,
+}
 
 impl TemplateEngine {
-    pub fn new() -> Self {
-        Self
+    pub fn new(template_dir: &Path) -> Result<Self> {
+        let mut env = Environment::new();
+
+        for name in ["base.html", "index.html", "post.html"] {
+            let path = template_dir.join(name);
+            let source = crate::fs::read_to_string(&path)?;
+            env.add_template_owned(name.to_string(), source)?;
+        }
+
+        Ok(Self { env })
     }
 
-    pub fn render_post(&self, post: &Post) -> Result<String> {
-        let html = format!(
-            r#"
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <title>{}</title>
-  </head>
-  <body>
-    {}
-  </body>
-</html>
-"#,
-            post.meta.title, post.html,
-        );
+    pub fn render_post(&self, post: &Post, config: &SiteConfig) -> Result<String> {
+        let site_view = SiteView {
+            title: &config.title,
+            base_url: &config.base_url,
+        };
 
-        Ok(html)
+        let post_view = PostView::from_post(post);
+        let content = self.env.get_template("post.html")?.render(context! {
+            site => site_view,
+            post => post_view
+        })?;
+
+        let page = self.env.get_template("base.html")?.render(context! {
+            site=>site_view,
+            title=>post.meta.title.as_str(),
+            content=>content
+        })?;
+
+        Ok(page)
     }
 
     pub fn render_index(&self, config: &SiteConfig, posts: &[Post]) -> Result<String> {
-        let mut items = String::new();
+        let site_view = SiteView {
+            title: &config.title,
+            base_url: &config.base_url,
+        };
 
-        for post in posts {
-            let date = post.meta.date.as_deref().unwrap_or("");
-            let summary = post
-                .meta
-                .summary
-                .as_deref()
-                .or(post.excerpt.as_deref())
-                .unwrap_or("");
+        let post_views = posts.iter().map(PostView::from_post).collect::<Vec<_>>();
 
-            items.push_str(&format!(
-                r#"
-            <article>
-              <h2><a href="/{slug}/">{title}</a></h2>
-              <p>{date}</p>
-              <p>{summary}</p>
-            </article>
-                "#,
-                slug = post.meta.slug,
-                title = post.meta.title,
-                date = date,
-                summary = summary,
-            ));
-        }
+        let content = self.env.get_template("index.html")?.render(context! {
+            site => site_view,
+            posts => post_views
+        })?;
 
-        let html = format!(
-            r#"
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <title>{title}</title>
-  </head>
-  <body>
-    <main>
-      <h1>{title}</h1>
-      {items}
-    </main>
-  </body>
-</html>
-"#,
-            title = config.title,
-            items = items,
-        );
+        let page = self.env.get_template("base.html")?.render(context! {
+            site => site_view,
+            title => config.title.as_str(),
+            content => content
+        })?;
 
-        Ok(html)
+        Ok(page)
     }
 }
