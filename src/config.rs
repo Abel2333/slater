@@ -12,6 +12,7 @@ use crate::{
 pub struct SiteConfig {
     pub title: String,
     pub base_url: String,
+    pub theme: String,
     pub content_dir: PathBuf,
     pub output_dir: PathBuf,
     pub template_dir: PathBuf,
@@ -32,6 +33,7 @@ impl Default for SiteConfig {
         Self {
             title: "Slater".to_string(),
             base_url: "http://127.0.0.1:3000".to_string(),
+            theme: "default".to_string(),
             content_dir: PathBuf::from("content"),
             output_dir: PathBuf::from("public"),
             template_dir: PathBuf::from("templates"),
@@ -104,6 +106,10 @@ impl SiteConfig {
         self.validate_site_fields()?;
         self.validate_dev_config()?;
         self.validate_paths()?;
+
+        if self.theme.trim().is_empty() {
+            return Err(Error::message("theme cannot be empty"));
+        }
 
         Ok(())
     }
@@ -281,5 +287,20 @@ output_dir = "site"
                 .contains("content_dir and output_dir must be different"),
             "unexpected error: {error}"
         );
+    }
+
+    #[test]
+    fn loads_theme_from_config() {
+        let dir = tempdir().expect("failed to create temp dir");
+        let content = r#"
+  title = "My Blog"
+  base_url = "http://127.0.0.1:3000"
+  theme = "minimal"
+  "#;
+        let config_path = write_config(dir.path(), content);
+
+        let config = SiteConfig::load_config(Some(config_path.as_path())).expect("load failed");
+
+        assert_eq!(config.theme, "minimal");
     }
 }

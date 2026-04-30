@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::PathBuf;
 
 use minijinja::{Environment, context};
 use serde::Serialize;
@@ -40,12 +40,11 @@ pub struct TemplateEngine {
 }
 
 impl TemplateEngine {
-    pub fn new(template_dir: &Path) -> Result<Self> {
+    pub fn new(config: &SiteConfig) -> Result<Self> {
         let mut env = Environment::new();
 
         for name in ["base.html", "index.html", "post.html"] {
-            let path = template_dir.join(name);
-            let source = crate::fs::read_to_string(&path)?;
+            let source = load_template_source(config, name)?;
             env.add_template_owned(name.to_string(), source)?;
         }
 
@@ -94,4 +93,27 @@ impl TemplateEngine {
 
         Ok(page)
     }
+}
+
+fn builtin_theme_template_dir(theme: &str) -> PathBuf {
+    PathBuf::from("assets/themes").join(theme).join("templates")
+}
+
+fn load_template_source(config: &SiteConfig, name: &str) -> Result<String> {
+    let project_path = config.template_dir.join(name);
+    if project_path.exists() {
+        return crate::fs::read_to_string(&project_path);
+    }
+
+    let builtin_path = builtin_theme_template_dir(&config.theme).join(name);
+    if builtin_path.exists() {
+        return crate::fs::read_to_string(&builtin_path);
+    }
+
+    Err(crate::error::Error::message(format!(
+        "template `{name}` not found in project directory ({}) or built-in theme `{}` ({})",
+        config.template_dir.display(),
+        config.theme,
+        builtin_theme_template_dir(&config.theme).display(),
+    )))
 }

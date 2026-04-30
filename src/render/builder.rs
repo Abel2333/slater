@@ -7,7 +7,7 @@ use crate::render::template::TemplateEngine;
 pub fn build_site(config: &SiteConfig) -> Result<()> {
     crate::fs::ensure_dir(&config.output_dir)?;
 
-    let engine = TemplateEngine::new(&config.template_dir)?;
+    let engine = TemplateEngine::new(config)?;
     let posts = load_posts(config)?;
 
     write_post_pages(config, &engine, &posts)?;
@@ -90,6 +90,7 @@ mod tests {
         SiteConfig {
             title: "Test Site".to_string(),
             base_url: "http://127.0.0.1:3000".to_string(),
+            theme: "default".to_string(),
             content_dir: root.join("content"),
             output_dir: root.join("public"),
             template_dir: root.join("templates"),

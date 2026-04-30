@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title }} - {{ site.title }}</title>
+    <link href="/style.css" rel="stylesheet" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container site-header-inner">
+        <h1 class="site-title"><a href="/">{{ site.title }}</a></h1>
+        <p class="site-tagline">Writing without noise.</p>
+      </div>
+    </header>
+
+    <main class="container page-shell">{{ content|safe }}</main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>{{ site.title }}</p>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -10,13 +10,14 @@
   --body: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
   color: var(--fg);
-  background:
-    radial-gradient(circle at top, #fbf7f0 0%, var(--bg) 58%);
+  background: radial-gradient(circle at top, #fbf7f0 0%, var(--bg) 58%);
   font: 400 18px/1.75 var(--body);
 }
 
@@ -99,7 +100,7 @@ body {
 .post-link h3,
 .post-header h1 {
   margin: 0;
-.08;
+  line-height: 1.08;
   letter-spacing: -0.03em;
 }
 

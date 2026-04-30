@@ -1,5 +1,6 @@
-title = "__SLATER_SITE_TITLE__"
+title = "Tmp Blog"
 base_url = "http://127.0.0.1:3000"
+theme = "minimal"
 content_dir = "content"
 output_dir = "_site"
 template_dir = "templates"
