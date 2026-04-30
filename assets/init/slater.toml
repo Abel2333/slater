@@ -1,7 +1,7 @@
 title = "__SLATER_SITE_TITLE__"
 base_url = "http://127.0.0.1:3000"
 content_dir = "content"
-output_dir = "public"
+output_dir = "_site"
 template_dir = "templates"
 static_dir = "static"
 

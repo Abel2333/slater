@@ -9,10 +9,23 @@ use crate::error::Result;
 pub struct ServeOptions {
     #[arg(long = "config")]
     pub config_path: Option<PathBuf>,
+
+    #[arg(long = "port")]
+    pub port: Option<u16>,
+
+    #[arg(long = "host")]
+    pub host: Option<String>,
 }
 
-pub fn execute(options: ServeOptions) -> Result<()> {
-    let config = SiteConfig::load_config(options.config_path.as_deref())?;
+pub async fn execute(options: ServeOptions) -> Result<()> {
+    let mut config = SiteConfig::load_config(options.config_path.as_deref())?;
+    if let Some(port) = options.port {
+        config.dev.port = port
+    }
 
-    crate::serve(&config)
+    if let Some(host) = options.host {
+        config.dev.host = host
+    }
+
+    crate::serve(&config).await
 }

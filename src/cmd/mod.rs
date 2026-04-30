@@ -30,12 +30,12 @@ pub enum Commands {
     Init(init::InitOptions),
 }
 
-pub fn run() -> Result<()> {
+pub async fn run() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
         Commands::Build(options) => build::execute(options),
-        Commands::Serve(options) => serve::execute(options),
+        Commands::Serve(options) => serve::execute(options).await,
         Commands::New(options) => new::execute(options),
         Commands::Init(options) => init::execute(options),
     }

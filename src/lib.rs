@@ -13,6 +13,6 @@ pub fn build(config: &SiteConfig) -> Result<()> {
     render::builder::build_site(config)
 }
 
-pub fn serve(config: &SiteConfig) -> Result<()> {
-    dev::server::serve(config)
+pub async fn serve(config: &SiteConfig) -> Result<()> {
+    dev::server::serve(config).await
 }
